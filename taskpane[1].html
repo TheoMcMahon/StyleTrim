@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StyleTrim</title>
+
+  <!-- Office.js -->
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+
+  <!-- Mammoth.js for reading .docx files -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+    :root {
+      --bg:       #0f1117;
+      --surface:  #181c27;
+      --border:   #2a2f3f;
+      --amber:    #e8a94a;
+      --amber-dim:#b07c28;
+      --text:     #e8e8ea;
+      --muted:    #6b7280;
+      --green:    #4ade80;
+      --red:      #f87171;
+      --radius:   8px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      min-height: 100vh;
+      padding: 0;
+    }
+
+    /* ── Header ─────────────────────────────── */
+    .header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 16px 12px;
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+    .header-title {
+      font-family: 'Instrument Serif', serif;
+      font-size: 20px;
+      color: var(--amber);
+      letter-spacing: -0.3px;
+    }
+    .header-sub {
+      font-size: 11px;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+    }
+
+    /* ── Sections ────────────────────────────── */
+    .section {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .section-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    /* ── API Key ─────────────────────────────── */
+    .input-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    input[type="text"], input[type="password"] {
+      flex: 1;
+      background: var(--border);
+      border: 1px solid #3a3f50;
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      padding: 7px 10px;
+      outline: none;
+      transition: border 0.15s;
+    }
+    input[type="text"]:focus, input[type="password"]:focus {
+      border-color: var(--amber);
+    }
+    .save-btn {
+      background: var(--amber);
+      border: none;
+      border-radius: var(--radius);
+      color: #0f1117;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 7px 10px;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+    .save-btn:hover { background: #f0b85a; }
+    .key-status {
+      font-size: 10px;
+      font-family: 'DM Mono', monospace;
+      margin-top: 5px;
+    }
+    .key-status.ok   { color: var(--green); }
+    .key-status.none { color: var(--muted); }
+
+    /* ── Upload zone ─────────────────────────── */
+    .drop-zone {
+      border: 1.5px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 16px 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      position: relative;
+    }
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: var(--amber);
+      background: rgba(232,169,74,0.04);
+    }
+    .drop-zone input[type="file"] {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      opacity: 0; cursor: pointer;
+    }
+    .drop-icon {
+      font-size: 22px;
+      margin-bottom: 6px;
+      opacity: 0.6;
+    }
+    .drop-text {
+      color: var(--muted);
+      font-size: 11.5px;
+      line-height: 1.4;
+    }
+    .drop-text span { color: var(--amber); }
+
+    /* ── File chips ──────────────────────────── */
+    .file-list {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-top: 10px;
+    }
+    .file-chip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 11px;
+    }
+    .file-chip-name {
+      font-family: 'DM Mono', monospace;
+      color: var(--amber);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 180px;
+    }
+    .file-chip-words {
+      color: var(--muted);
+      font-size: 10px;
+      flex-shrink: 0;
+      margin-left: 6px;
+    }
+    .remove-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      padding: 0 0 0 6px;
+      flex-shrink: 0;
+    }
+    .remove-btn:hover { color: var(--red); }
+
+    /* ── Target word count ───────────────────── */
+    .target-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .target-label {
+      font-size: 12px;
+      color: var(--text);
+      flex: 1;
+    }
+    input[type="number"] {
+      width: 72px;
+      background: var(--border);
+      border: 1px solid #3a3f50;
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      padding: 6px 8px;
+      text-align: center;
+      outline: none;
+      transition: border 0.15s;
+    }
+    input[type="number"]:focus { border-color: var(--amber); }
+
+    .mode-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .mode-btn {
+      flex: 1;
+      background: var(--border);
+      border: 1px solid transparent;
+      border-radius: 6px;
+      color: var(--muted);
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 6px 4px;
+      text-align: center;
+      transition: all 0.15s;
+    }
+    .mode-btn.active {
+      background: rgba(232,169,74,0.12);
+      border-color: var(--amber);
+      color: var(--amber);
+    }
+
+    /* ── Trim button ─────────────────────────── */
+    .trim-section {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .trim-btn {
+      width: 100%;
+      background: var(--amber);
+      border: none;
+      border-radius: var(--radius);
+      color: #0f1117;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      padding: 10px;
+      transition: background 0.15s, transform 0.1s;
+      position: relative;
+      overflow: hidden;
+    }
+    .trim-btn:hover:not(:disabled) { background: #f0b85a; }
+    .trim-btn:active:not(:disabled) { transform: scale(0.98); }
+    .trim-btn:disabled {
+      background: var(--border);
+      color: var(--muted);
+      cursor: not-allowed;
+    }
+    .word-info {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 8px;
+    }
+    .word-info span {
+      font-size: 10px;
+      font-family: 'DM Mono', monospace;
+      color: var(--muted);
+    }
+    .word-info span.highlight { color: var(--amber); }
+
+    /* ── Result area ─────────────────────────── */
+    .result-section {
+      padding: 14px 16px;
+      display: none;
+    }
+    .result-section.visible { display: block; }
+
+    .result-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 12px;
+      line-height: 1.6;
+      max-height: 160px;
+      overflow-y: auto;
+      padding: 10px 12px;
+      color: var(--text);
+      white-space: pre-wrap;
+    }
+    .result-box::-webkit-scrollbar { width: 4px; }
+    .result-box::-webkit-scrollbar-track { background: transparent; }
+    .result-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    .result-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .action-btn {
+      flex: 1;
+      background: var(--border);
+      border: 1px solid #3a3f50;
+      border-radius: 6px;
+      color: var(--text);
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 7px;
+      text-align: center;
+      transition: all 0.15s;
+    }
+    .action-btn.primary {
+      background: rgba(74,222,128,0.1);
+      border-color: var(--green);
+      color: var(--green);
+    }
+    .action-btn:hover { border-color: var(--amber); color: var(--amber); }
+    .action-btn.primary:hover { background: rgba(74,222,128,0.2); }
+
+    .result-meta {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .result-meta span {
+      font-size: 10px;
+      font-family: 'DM Mono', monospace;
+      color: var(--muted);
+    }
+    .result-meta .saved { color: var(--green); }
+
+    /* ── Spinner ─────────────────────────────── */
+    .spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid rgba(15,17,23,0.3);
+      border-top-color: #0f1117;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Toast ───────────────────────────────── */
+    .toast {
+      position: fixed;
+      bottom: 16px; left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      color: var(--text);
+      font-size: 11.5px;
+      opacity: 0;
+      padding: 7px 16px;
+      pointer-events: none;
+      transition: all 0.25s;
+      white-space: nowrap;
+      z-index: 999;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    .toast.error { border-color: var(--red); color: var(--red); }
+    .toast.success { border-color: var(--green); color: var(--green); }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <span class="header-title">StyleTrim</span>
+    <span class="header-sub">for Word</span>
+  </div>
+
+  <!-- API Key -->
+  <div class="section">
+    <div class="section-label">Anthropic API Key</div>
+    <div class="input-row">
+      <input type="password" id="apiKeyInput" placeholder="sk-ant-..." />
+      <button class="save-btn" onclick="saveApiKey()">Save</button>
+    </div>
+    <div class="key-status none" id="keyStatus">No key saved</div>
+  </div>
+
+  <!-- Writing Samples -->
+  <div class="section">
+    <div class="section-label">Your Writing Samples</div>
+    <div class="drop-zone" id="dropZone">
+      <input type="file" id="fileInput" accept=".txt,.docx" multiple
+             onchange="handleFiles(this.files)" />
+      <div class="drop-icon">📄</div>
+      <div class="drop-text">
+        Drop <span>.txt</span> or <span>.docx</span> files here<br/>
+        or click to browse
+      </div>
+    </div>
+    <div class="file-list" id="fileList"></div>
+  </div>
+
+  <!-- Target Settings -->
+  <div class="section">
+    <div class="section-label">Trim Settings</div>
+    <div class="target-row">
+      <span class="target-label">Target word count</span>
+      <input type="number" id="targetWords" value="150" min="10" max="5000" />
+    </div>
+    <div class="mode-row">
+      <button class="mode-btn active" id="modeExact" onclick="setMode('exact')">Exact count</button>
+      <button class="mode-btn" id="modePercent" onclick="setMode('percent')">Reduce by %</button>
+    </div>
+    <div id="percentRow" style="display:none; margin-top:8px;">
+      <div class="target-row">
+        <span class="target-label">Reduce by</span>
+        <input type="number" id="percentVal" value="30" min="5" max="90" />
+        <span style="color:var(--muted);font-size:12px;">%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Trim Action -->
+  <div class="trim-section">
+    <button class="trim-btn" id="trimBtn" onclick="trimSelection()">
+      ✦ Trim Selected Text
+    </button>
+    <div class="word-info">
+      <span id="selectionInfo">Select text in Word to trim</span>
+      <span id="sampleInfo" class="highlight">0 samples loaded</span>
+    </div>
+  </div>
+
+  <!-- Result -->
+  <div class="result-section" id="resultSection">
+    <div class="section-label">Trimmed Result</div>
+    <div class="result-meta">
+      <span id="beforeWords">Before: — words</span>
+      <span class="saved" id="afterWords">After: — words</span>
+    </div>
+    <div class="result-box" id="resultBox"></div>
+    <div class="result-actions">
+      <button class="action-btn" onclick="copyResult()">Copy</button>
+      <button class="action-btn primary" onclick="replaceInWord()">Replace in Doc ↵</button>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+<script>
+// ─── State ────────────────────────────────────────────────────────────────
+let writingSamples = [];   // { name, text, wordCount }
+let trimMode = 'exact';
+let lastTrimmedText = '';
+let apiKey = '';
+
+// ─── Office init ──────────────────────────────────────────────────────────
+Office.onReady(() => {
+  loadSavedKey();
+  loadSavedSamples();
+});
+
+// ─── API Key ──────────────────────────────────────────────────────────────
+function saveApiKey() {
+  const val = document.getElementById('apiKeyInput').value.trim();
+  if (!val.startsWith('sk-ant-')) {
+    showToast('Key should start with sk-ant-', 'error');
+    return;
+  }
+  apiKey = val;
+  Office.context.roamingSettings.set('apiKey', val);
+  Office.context.roamingSettings.saveAsync(() => {
+    updateKeyStatus();
+    showToast('API key saved ✓', 'success');
+    document.getElementById('apiKeyInput').value = '';
+  });
+}
+
+function loadSavedKey() {
+  const saved = Office.context.roamingSettings.get('apiKey');
+  if (saved) {
+    apiKey = saved;
+    updateKeyStatus();
+  }
+}
+
+function updateKeyStatus() {
+  const el = document.getElementById('keyStatus');
+  if (apiKey) {
+    el.textContent = '● Key saved — ' + apiKey.slice(0,12) + '…';
+    el.className = 'key-status ok';
+  } else {
+    el.textContent = 'No key saved';
+    el.className = 'key-status none';
+  }
+}
+
+// ─── File handling ────────────────────────────────────────────────────────
+async function handleFiles(files) {
+  for (const file of files) {
+    try {
+      let text = '';
+      if (file.name.endsWith('.txt')) {
+        text = await readTxt(file);
+      } else if (file.name.endsWith('.docx')) {
+        text = await readDocx(file);
+      } else {
+        showToast('Only .txt and .docx files are supported', 'error');
+        continue;
+      }
+      const wordCount = countWords(text);
+      writingSamples.push({ name: file.name, text, wordCount });
+      saveSamples();
+      renderFileList();
+    } catch (e) {
+      showToast('Error reading ' + file.name, 'error');
+    }
+  }
+  document.getElementById('fileInput').value = '';
+}
+
+function readTxt(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = e => res(e.target.result);
+    r.onerror = rej;
+    r.readAsText(file);
+  });
+}
+
+function readDocx(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = e => {
+      mammoth.extractRawText({ arrayBuffer: e.target.result })
+        .then(result => res(result.value))
+        .catch(rej);
+    };
+    r.onerror = rej;
+    r.readAsArrayBuffer(file);
+  });
+}
+
+function renderFileList() {
+  const el = document.getElementById('fileList');
+  el.innerHTML = '';
+  writingSamples.forEach((s, i) => {
+    const chip = document.createElement('div');
+    chip.className = 'file-chip';
+    chip.innerHTML = `
+      <span class="file-chip-name" title="${s.name}">${s.name}</span>
+      <span class="file-chip-words">${s.wordCount.toLocaleString()} words</span>
+      <button class="remove-btn" onclick="removeSample(${i})">×</button>
+    `;
+    el.appendChild(chip);
+  });
+  document.getElementById('sampleInfo').textContent =
+    writingSamples.length + ' sample' + (writingSamples.length !== 1 ? 's' : '') + ' loaded';
+}
+
+function removeSample(i) {
+  writingSamples.splice(i, 1);
+  saveSamples();
+  renderFileList();
+}
+
+function saveSamples() {
+  // Store compact version (first 3000 chars per sample) in roaming settings
+  const compact = writingSamples.map(s => ({
+    name: s.name,
+    wordCount: s.wordCount,
+    text: s.text.slice(0, 3000)
+  }));
+  try {
+    Office.context.roamingSettings.set('writingSamples', JSON.stringify(compact));
+    Office.context.roamingSettings.saveAsync(() => {});
+  } catch(e) {}
+}
+
+function loadSavedSamples() {
+  try {
+    const raw = Office.context.roamingSettings.get('writingSamples');
+    if (raw) {
+      writingSamples = JSON.parse(raw);
+      renderFileList();
+    }
+  } catch(e) {}
+}
+
+// ─── Mode toggle ──────────────────────────────────────────────────────────
+function setMode(mode) {
+  trimMode = mode;
+  document.getElementById('modeExact').classList.toggle('active', mode === 'exact');
+  document.getElementById('modePercent').classList.toggle('active', mode === 'percent');
+  document.getElementById('targetWords').closest('.target-row').style.display =
+    mode === 'exact' ? 'flex' : 'none';
+  document.getElementById('percentRow').style.display =
+    mode === 'percent' ? 'block' : 'none';
+}
+
+// ─── Core trim action ─────────────────────────────────────────────────────
+async function trimSelection() {
+  if (!apiKey) {
+    showToast('Please save your API key first', 'error');
+    return;
+  }
+  if (writingSamples.length === 0) {
+    showToast('Upload at least one writing sample', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('trimBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Trimming…';
+
+  try {
+    // Get selected text from Word
+    let selectedText = '';
+    await Word.run(async (context) => {
+      const sel = context.document.getSelection();
+      sel.load('text');
+      await context.sync();
+      selectedText = sel.text;
+    });
+
+    if (!selectedText || selectedText.trim().length < 10) {
+      showToast('Please select text in your document first', 'error');
+      return;
+    }
+
+    const originalWords = countWords(selectedText);
+    document.getElementById('selectionInfo').textContent =
+      originalWords + ' words selected';
+
+    // Compute target
+    let targetCount;
+    if (trimMode === 'exact') {
+      targetCount = parseInt(document.getElementById('targetWords').value);
+    } else {
+      const pct = parseInt(document.getElementById('percentVal').value);
+      targetCount = Math.round(originalWords * (1 - pct / 100));
+    }
+
+    // Build style context from samples (max ~2000 chars total)
+    const styleContext = writingSamples
+      .map(s => `--- Sample: ${s.name} ---\n${s.text.slice(0, 600)}`)
+      .join('\n\n')
+      .slice(0, 2200);
+
+    // Claude API call
+    const prompt = `You are a writing editor who trims text while preserving the author's unique voice, style, and vocabulary.
+
+Here are writing samples from the author to use as style reference:
+${styleContext}
+
+---
+
+Now trim the following text to approximately ${targetCount} words. 
+Rules:
+- Preserve the author's tone, vocabulary, sentence rhythm, and personality
+- Remove redundancy, filler words, and verbose constructions
+- Do NOT change the meaning or drop key points
+- Output ONLY the trimmed text, no commentary or explanations
+
+TEXT TO TRIM (${originalWords} words):
+${selectedText}`;
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error?.message || 'API error ' + response.status);
+    }
+
+    const data = await response.json();
+    const trimmed = data.content
+      .filter(b => b.type === 'text')
+      .map(b => b.text)
+      .join('');
+
+    lastTrimmedText = trimmed.trim();
+    const trimmedWords = countWords(lastTrimmedText);
+
+    // Show result
+    document.getElementById('resultBox').textContent = lastTrimmedText;
+    document.getElementById('beforeWords').textContent =
+      'Before: ' + originalWords.toLocaleString() + ' words';
+    document.getElementById('afterWords').textContent =
+      'After: ' + trimmedWords.toLocaleString() + ' words (' +
+      Math.round((1 - trimmedWords/originalWords)*100) + '% cut)';
+    document.getElementById('resultSection').classList.add('visible');
+
+  } catch (e) {
+    showToast(e.message || 'Something went wrong', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '✦ Trim Selected Text';
+  }
+}
+
+// ─── Replace in Word ──────────────────────────────────────────────────────
+async function replaceInWord() {
+  if (!lastTrimmedText) return;
+  try {
+    await Word.run(async (context) => {
+      const sel = context.document.getSelection();
+      sel.insertText(lastTrimmedText, 'Replace');
+      await context.sync();
+    });
+    showToast('Replaced in document ✓', 'success');
+  } catch (e) {
+    showToast('Could not replace text', 'error');
+  }
+}
+
+// ─── Copy ─────────────────────────────────────────────────────────────────
+function copyResult() {
+  if (!lastTrimmedText) return;
+  navigator.clipboard.writeText(lastTrimmedText)
+    .then(() => showToast('Copied to clipboard ✓', 'success'))
+    .catch(() => showToast('Copy failed', 'error'));
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────
+function countWords(text) {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
+function showToast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show ' + type;
+  setTimeout(() => { el.className = 'toast'; }, 2800);
+}
+
+// Drag-and-drop visual feedback
+const dz = document.getElementById('dropZone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+dz.addEventListener('drop', e => {
+  e.preventDefault();
+  dz.classList.remove('drag-over');
+  handleFiles(e.dataTransfer.files);
+});
+</script>
+</body>
+</html>
