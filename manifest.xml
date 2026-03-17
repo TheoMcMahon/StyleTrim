@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<OfficeApp
+  xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
+  xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
+  xsi:type="TaskPaneApp">
+
+  <!-- ============================================================
+       IMPORTANT: Before sideloading, update the URLs below to
+       match where you're hosting taskpane.html.
+       
+       For local development:  https://localhost:3000/taskpane.html
+       For GitHub Pages:       https://yourusername.github.io/styletrim/taskpane.html
+       ============================================================ -->
+
+  <Id>a3f8c2d1-9b4e-4f67-8c1a-2e5b9d3f7a0c</Id>
+  <Version>1.0.0</Version>
+  <ProviderName>StyleTrim</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="StyleTrim — Write Less, Sound Like You" />
+  <Description DefaultValue="Trim your word count while preserving your unique writing voice, using your own writing as a style guide." />
+
+  <IconUrl DefaultValue="https://via.placeholder.com/32x32/e8a94a/0f1117?text=ST" />
+  <HighResolutionIconUrl DefaultValue="https://via.placeholder.com/64x64/e8a94a/0f1117?text=ST" />
+
+  <SupportUrl DefaultValue="https://github.com/yourusername/styletrim" />
+  <AppDomains>
+    <AppDomain>https://api.anthropic.com</AppDomain>
+    <AppDomain>https://theomcmahon.github.io</AppDomain>
+  </AppDomains>
+
+  <Hosts>
+    <Host Name="Document" />
+  </Hosts>
+
+  <DefaultSettings>
+    <!-- UPDATE THIS URL to match your hosting location -->
+    <SourceLocation DefaultValue="https://theomcmahon.github.io/styletrim/taskpane.html" />
+  </DefaultSettings>
+
+  <Permissions>ReadWriteDocument</Permissions>
+
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
+    <Hosts>
+      <Host xsi:type="Document">
+        <DesktopFormFactor>
+          <GetStarted>
+            <Title resid="GetStarted.Title"/>
+            <Description resid="GetStarted.Description"/>
+            <LearnMoreUrl resid="GetStarted.LearnMoreUrl"/>
+          </GetStarted>
+          <ExtensionPoint xsi:type="PrimaryCommandSurface">
+            <OfficeTab id="TabHome">
+              <Group id="StyleTrimGroup">
+                <Label resid="CommandsGroup.Label"/>
+                <Icon>
+                  <bt:Image size="16" resid="Icon.16x16"/>
+                  <bt:Image size="32" resid="Icon.32x32"/>
+                  <bt:Image size="80" resid="Icon.80x80"/>
+                </Icon>
+                <Control xsi:type="Button" id="OpenPaneButton">
+                  <Label resid="TaskpaneButton.Label"/>
+                  <Supertip>
+                    <Title resid="TaskpaneButton.Label"/>
+                    <Description resid="TaskpaneButton.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16x16"/>
+                    <bt:Image size="32" resid="Icon.32x32"/>
+                    <bt:Image size="80" resid="Icon.80x80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>StyleTrimPane</TaskpaneId>
+                    <SourceLocation resid="Taskpane.Url"/>
+                  </Action>
+                </Control>
+              </Group>
+            </OfficeTab>
+          </ExtensionPoint>
+        </DesktopFormFactor>
+      </Host>
+    </Hosts>
+
+    <Resources>
+      <bt:Images>
+        <bt:Image id="Icon.16x16" DefaultValue="https://via.placeholder.com/16x16/e8a94a/0f1117?text=ST"/>
+        <bt:Image id="Icon.32x32" DefaultValue="https://via.placeholder.com/32x32/e8a94a/0f1117?text=ST"/>
+        <bt:Image id="Icon.80x80" DefaultValue="https://via.placeholder.com/80x80/e8a94a/0f1117?text=ST"/>
+      </bt:Images>
+      <bt:Urls>
+        <!-- UPDATE THIS URL to match your hosting location -->
+        <bt:Url id="Taskpane.Url" DefaultValue="https://theomcmahon.github.io/styletrim/taskpane.html"/>
+        <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://github.com/TheoMcMahon/styletrim"/>
+      </bt:Urls>
+      <bt:ShortStrings>
+        <bt:String id="GetStarted.Title" DefaultValue="StyleTrim is ready!"/>
+        <bt:String id="CommandsGroup.Label" DefaultValue="StyleTrim"/>
+        <bt:String id="TaskpaneButton.Label" DefaultValue="Open StyleTrim"/>
+      </bt:ShortStrings>
+      <bt:LongStrings>
+        <bt:String id="GetStarted.Description" DefaultValue="Select text in your document, then use StyleTrim to reduce word count while keeping your voice."/>
+        <bt:String id="TaskpaneButton.Tooltip" DefaultValue="Open the StyleTrim panel to trim word count using your own writing style."/>
+      </bt:LongStrings>
+    </Resources>
+  </VersionOverrides>
+</OfficeApp>
